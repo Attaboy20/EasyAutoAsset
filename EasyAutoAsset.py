@@ -4,7 +4,7 @@ bl_info = {
     "version": (0, 1, 0),
     "blender": (3, 6, 0),
     "category": "Object",
-    "location": "Right Click Context Menu",
+    "location": "Outliner/3D View > Right Click Context Menu",
     "description": "Easily add the current file path to system prefs when marking assets",
 }
 
@@ -78,7 +78,7 @@ class OBJECT_OT_mark_as_asset(bpy.types.Operator):
     
     
 
-    
+ # For future features   
 class VIEW3D_MT_mark_as_asset_submenu(bpy.types.Menu):
     bl_label = "Mark as Asset Submenu"
     bl_idname = "object.mark_as_asset_submenu"
@@ -95,17 +95,17 @@ def menu_func_outliner(self, context):
 def menu_func_view3d(self, context):
     layout = self.layout
     layout.separator()
-    layout.menu(VIEW3D_MT_mark_as_asset_submenu.bl_idname, text="Mark as EasyAsset")
+    layout.menu("object.mark_as_asset_submenu", text="Mark as EasyAsset")
 
 def menu_func_outliner_object(self, context):
     layout = self.layout
     layout.separator()
-    layout.menu(VIEW3D_MT_mark_as_asset_submenu.bl_idname, text="Mark as EasyAsset")
+    layout.menu("object.mark_as_asset_submenu", text="Mark as EasyAsset")
 
 def menu_func_outliner_collection(self, context):
     layout = self.layout
     layout.separator()
-    layout.menu(VIEW3D_MT_mark_as_asset_submenu.bl_idname, text="Mark as EasyAsset")
+    layout.menu("object.mark_as_asset_submenu", text="Mark as EasyAsset")
 
 def register():
     bpy.utils.register_class(OBJECT_OT_mark_as_asset)
