@@ -91,14 +91,15 @@ class OBJECT_OT_mark_as_asset(bpy.types.Operator):
         bpy.ops.wm.save_userpref()
 
 class POSE_OT_mark_pose(bpy.types.Operator):
+    """Mark Selected Bone(s) as Pose Asset and add file path to prefs"""
     bl_label = "Mark poses in 3d view"
     bl_idname = "pose.mark_pose"
     bl_options = {'REGISTER', 'UNDO'}
     
-    pose_name: StringProperty(
+    easy_pose_name: StringProperty(
         name="Pose Name",
         description="Name of the pose asset",
-        default=""
+        default="EasyPose"
     )
 
     @classmethod
@@ -118,9 +119,9 @@ class POSE_OT_mark_pose(bpy.types.Operator):
             self.report({'WARNING'}, "The current file has not been saved. Save the file first")
             return {'FINISHED'}
         obj = context.active_object
-        
-        # OBJECT_OT_mark_as_asset.add_to_path()
-        self.report({'INFO'}, f"Marked pose as asset: {obj.name}")
+        bpy.ops.poselib.create_pose_asset(pose_name=self.easy_pose_name, activate_new_action=True)
+        OBJECT_OT_mark_as_asset.add_to_path()
+        self.report({'INFO'}, f"Pose '{self.pose_name}' marked as pose asset")
         return {'FINISHED'}
 
 
@@ -152,8 +153,7 @@ class VIEW3D_MT_mark_as_asset_submenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator(OBJECT_OT_mark_as_asset.bl_idname, text="Mark as EasyAsset and add Library")
-        if context.active_object:
-            layout.operator(POSE_OT_mark_pose.bl_idname, text="Mark EasyPose and add Library")
+        layout.operator(POSE_OT_mark_pose.bl_idname, text="Mark EasyPose and add Library")
         
 
 def menu_func_outliner(self, context):
@@ -192,7 +192,7 @@ def register():
 
 def unregister():
     bpy.types.VIEW3D_MT_pose_context_menu.remove(menu_func_pose)
-    bpy.types.DOPESHEET_PT_asset_panel.append(POSE_OT_mark_pose)
+    bpy.types.DOPESHEET_PT_asset_panel.remove(POSE_OT_mark_pose)
     bpy.types.DOPESHEET_PT_asset_panel.remove(POSE_MT_mark_pose_panel)
     bpy.utils.unregister_class(OBJECT_OT_mark_as_asset)
     bpy.utils.unregister_class(VIEW3D_MT_mark_as_asset_submenu)
@@ -201,8 +201,6 @@ def unregister():
     bpy.types.VIEW3D_MT_object_context_menu.remove(menu_func_view3d)
     bpy.types.OUTLINER_MT_object.remove(menu_func_outliner_object)
     
-    
-
     
 
 
