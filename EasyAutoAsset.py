@@ -11,12 +11,25 @@ bl_info = {
 import bpy
 import os
 from pathlib import Path
+from bpy.types import Panel, Context
+from bpy.props import StringProperty
+
+
+class PoseLibraryPanel:
+    @classmethod
+    def pose_library_panel_poll(cls, context: Context) -> bool:
+        return bool(context.object and context.object.mode == 'POSE')
+
+    @classmethod
+    def poll(cls, context: Context) -> bool:
+        return cls.pose_library_panel_poll(context)
 
 
 ## TO DO ##
 # UI panel for settings
 # Allow user to select where to save file by picking existing libraries
 # Save isolated assets button? 
+# Poses?
 
 
 class OBJECT_OT_mark_as_asset(bpy.types.Operator):
@@ -47,6 +60,7 @@ class OBJECT_OT_mark_as_asset(bpy.types.Operator):
             self.report({'INFO'}, "No object or collection selected")
         return {'FINISHED'}
     
+    @staticmethod
     def add_to_path(self):
         current_dir = bpy.data.filepath
        
@@ -75,8 +89,60 @@ class OBJECT_OT_mark_as_asset(bpy.types.Operator):
 
         # Save the user preferences to retain changes
         bpy.ops.wm.save_userpref()
+
+class POSE_OT_mark_pose(bpy.types.Operator):
+    bl_label = "Mark poses in 3d view"
+    bl_idname = "pose.mark_pose"
+    bl_options = {'REGISTER', 'UNDO'}
     
+    pose_name: StringProperty(
+        name="Pose Name",
+        description="Name of the pose asset",
+        default=""
+    )
+
+    @classmethod
+    def poll(cls, context):
+        # Ensure an object is selected and in pose mode
+        obj = context.active_object
+        return obj is not None and obj.mode == 'POSE'
     
+    def invoke(self, context, event):
+        # Open a dialog for the user to enter the pose name
+        return context.window_manager.invoke_props_dialog(self)
+    
+    def execute(self, context):
+        current_dir = bpy.data.filepath
+        # Check if current path exists (Blend file has not been saved)
+        if not current_dir:
+            self.report({'WARNING'}, "The current file has not been saved. Save the file first")
+            return {'FINISHED'}
+        obj = context.active_object
+        
+        # OBJECT_OT_mark_as_asset.add_to_path()
+        self.report({'INFO'}, f"Marked pose as asset: {obj.name}")
+        return {'FINISHED'}
+
+
+#Adds Panel to Animation Editors
+class POSE_MT_mark_pose_panel(PoseLibraryPanel, Panel):
+    bl_space_type = "DOPESHEET_EDITOR"
+    bl_region_type = "UI"
+    bl_label = "Create EasyPose"
+    bl_category = "Action"
+
+    @classmethod
+    def poll(cls, context):
+        # Ensure an object is selected and in pose mode
+        obj = context.active_object
+        return obj is not None and obj.mode == 'POSE'
+    
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        row.operator("POSE_OT_mark_pose", text="Mark EasyPose Asset")
+        #row.operator("poselib.create_pose_asset").activate_new_action = True
 
  # For future features   
 class VIEW3D_MT_mark_as_asset_submenu(bpy.types.Menu):
@@ -86,6 +152,9 @@ class VIEW3D_MT_mark_as_asset_submenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator(OBJECT_OT_mark_as_asset.bl_idname, text="Mark as EasyAsset and add Library")
+        if context.active_object:
+            layout.operator(POSE_OT_mark_pose.bl_idname, text="Mark EasyPose and add Library")
+        
 
 def menu_func_outliner(self, context):
     layout = self.layout
@@ -96,6 +165,9 @@ def menu_func_view3d(self, context):
     layout = self.layout
     layout.separator()
     layout.menu("object.mark_as_asset_submenu", text="Mark as EasyAsset")
+    
+def menu_func_pose(self, context):
+    self.layout.operator(POSE_OT_mark_pose.bl_idname, text="Mark Pose as EasyPose Asset")
 
 def menu_func_outliner_object(self, context):
     layout = self.layout
@@ -108,6 +180,9 @@ def menu_func_outliner_collection(self, context):
     layout.menu("object.mark_as_asset_submenu", text="Mark as EasyAsset")
 
 def register():
+    bpy.types.VIEW3D_MT_pose_context_menu.append(menu_func_pose)
+    bpy.types.DOPESHEET_PT_asset_panel.append(POSE_OT_mark_pose)
+    bpy.types.DOPESHEET_PT_asset_panel.append(POSE_MT_mark_pose_panel)
     bpy.utils.register_class(OBJECT_OT_mark_as_asset)
     bpy.utils.register_class(VIEW3D_MT_mark_as_asset_submenu)
     bpy.types.OUTLINER_MT_context_menu.append(menu_func_outliner)
@@ -116,6 +191,9 @@ def register():
     bpy.types.OUTLINER_MT_object.append(menu_func_outliner_object)
 
 def unregister():
+    bpy.types.VIEW3D_MT_pose_context_menu.remove(menu_func_pose)
+    bpy.types.DOPESHEET_PT_asset_panel.append(POSE_OT_mark_pose)
+    bpy.types.DOPESHEET_PT_asset_panel.remove(POSE_MT_mark_pose_panel)
     bpy.utils.unregister_class(OBJECT_OT_mark_as_asset)
     bpy.utils.unregister_class(VIEW3D_MT_mark_as_asset_submenu)
     bpy.types.OUTLINER_MT_context_menu.remove(menu_func_outliner)
