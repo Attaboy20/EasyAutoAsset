@@ -11,7 +11,7 @@ bl_info = {
 import bpy
 import os
 from pathlib import Path
-from bpy.types import Panel, Context
+from bpy.types import Panel, Context, Menu
 from bpy.props import StringProperty
 
 
@@ -92,7 +92,7 @@ class OBJECT_OT_mark_as_asset(bpy.types.Operator):
 
 class POSE_OT_mark_pose(bpy.types.Operator):
     """Mark Selected Bone(s) as Pose Asset and add file path to prefs"""
-    bl_label = "Mark poses in 3d view"
+    bl_label = "Enter name for Pose Asset"
     bl_idname = "pose.mark_pose"
     bl_options = {'REGISTER', 'UNDO'}
     
@@ -120,13 +120,14 @@ class POSE_OT_mark_pose(bpy.types.Operator):
             return {'FINISHED'}
         obj = context.active_object
         bpy.ops.poselib.create_pose_asset(pose_name=self.easy_pose_name, activate_new_action=True)
-        OBJECT_OT_mark_as_asset.add_to_path()
-        self.report({'INFO'}, f"Pose '{self.pose_name}' marked as pose asset")
+        obj.asset_generate_preview()
+        OBJECT_OT_mark_as_asset.add_to_path(self)
+        self.report({'INFO'}, f"Pose '{self.easy_pose_name}' marked as pose asset")
         return {'FINISHED'}
 
 
 #Adds Panel to Animation Editors
-class POSE_MT_mark_pose_panel(PoseLibraryPanel, Panel):
+class POSE_MT_mark_pose_panel(Panel):
     bl_space_type = "DOPESHEET_EDITOR"
     bl_region_type = "UI"
     bl_label = "Create EasyPose"
@@ -143,6 +144,9 @@ class POSE_MT_mark_pose_panel(PoseLibraryPanel, Panel):
         col = layout.column(align=True)
         row = col.row(align=True)
         row.operator("POSE_OT_mark_pose", text="Mark EasyPose Asset")
+        # Add button to return to previous action when making a new one
+        if bpy.types.POSELIB_OT_restore_previous_action.poll(context):
+            row.operator("poselib.restore_previous_action", text="", icon='LOOP_BACK')
         #row.operator("poselib.create_pose_asset").activate_new_action = True
 
  # For future features   
@@ -167,7 +171,9 @@ def menu_func_view3d(self, context):
     layout.menu("object.mark_as_asset_submenu", text="Mark as EasyAsset")
     
 def menu_func_pose(self, context):
-    self.layout.operator(POSE_OT_mark_pose.bl_idname, text="Mark Pose as EasyPose Asset")
+    layout = self.layout
+    layout.separator()
+    layout.operator(POSE_OT_mark_pose.bl_idname, text="Mark Pose as EasyPose Asset")
 
 def menu_func_outliner_object(self, context):
     layout = self.layout
@@ -178,24 +184,31 @@ def menu_func_outliner_collection(self, context):
     layout = self.layout
     layout.separator()
     layout.menu("object.mark_as_asset_submenu", text="Mark as EasyAsset")
+    
+classes = (
+    OBJECT_OT_mark_as_asset,
+    POSE_OT_mark_pose,
+    POSE_MT_mark_pose_panel,
+    VIEW3D_MT_mark_as_asset_submenu,
+)
 
 def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
     bpy.types.VIEW3D_MT_pose_context_menu.append(menu_func_pose)
     bpy.types.DOPESHEET_PT_asset_panel.append(POSE_OT_mark_pose)
     bpy.types.DOPESHEET_PT_asset_panel.append(POSE_MT_mark_pose_panel)
-    bpy.utils.register_class(OBJECT_OT_mark_as_asset)
-    bpy.utils.register_class(VIEW3D_MT_mark_as_asset_submenu)
     bpy.types.OUTLINER_MT_context_menu.append(menu_func_outliner)
     bpy.types.OUTLINER_MT_collection.append(menu_func_outliner_collection)
     bpy.types.VIEW3D_MT_object_context_menu.append(menu_func_view3d)
     bpy.types.OUTLINER_MT_object.append(menu_func_outliner_object)
 
 def unregister():
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
     bpy.types.VIEW3D_MT_pose_context_menu.remove(menu_func_pose)
     bpy.types.DOPESHEET_PT_asset_panel.remove(POSE_OT_mark_pose)
     bpy.types.DOPESHEET_PT_asset_panel.remove(POSE_MT_mark_pose_panel)
-    bpy.utils.unregister_class(OBJECT_OT_mark_as_asset)
-    bpy.utils.unregister_class(VIEW3D_MT_mark_as_asset_submenu)
     bpy.types.OUTLINER_MT_context_menu.remove(menu_func_outliner)
     bpy.types.OUTLINER_MT_collection.remove(menu_func_outliner_collection)
     bpy.types.VIEW3D_MT_object_context_menu.remove(menu_func_view3d)
