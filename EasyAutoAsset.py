@@ -1,8 +1,8 @@
 bl_info = {
     "name": "EasyAutoAsset",
     "author": "Attaboy!",
-    "version": (0, 1, 0),
-    "blender": (3, 6, 0),
+    "version": (0, 2, 0),
+    "blender": (4, 5, 0),
     "category": "Object",
     "location": "Outliner/3D View > Right Click Context Menu",
     "description": "Easily add the current file path to system prefs when marking assets",
@@ -14,6 +14,7 @@ from pathlib import Path
 
 
 ## TO DO ##
+# Update for Blender 4.5 versions and the new asset system
 # UI panel for settings
 # Allow user to select where to save file by picking existing libraries
 # Save isolated assets button? 
